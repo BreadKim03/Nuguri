@@ -1,10 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <time.h>
+#else
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <time.h>
+#endif
+
 
 // 맵 및 게임 요소 정의 (수정된 부분)
 #define MAP_WIDTH 40  // 맵 너비를 40으로 변경
@@ -45,8 +50,6 @@ int coin_count = 0;
 struct termios orig_termios;
 
 // 함수 선언
-void disable_raw_mode();
-void enable_raw_mode();
 void load_maps();
 void init_stage();
 void draw_game();
@@ -54,11 +57,71 @@ void update_game(char input);
 void move_player(char input);
 void move_enemies();
 void check_collisions();
+void disable_raw_mode();
+void enable_raw_mode();
+void title();
+void victory();
+void credit();
 int kbhit();
+
+//메인 메뉴 
+void title()
+{
+    printf("\n\n\n\n\n\n\n						T");
+    Sleep(500);
+    printf("	H");
+    Sleep(500);
+    printf("	E");
+    Sleep(500);
+    printf("\n\n			P");
+    Sleep(500);
+    printf("	O");
+    Sleep(500);
+    printf("	M");
+    Sleep(500);
+    printf("	P");
+    Sleep(500);
+    printf("	O");
+    Sleep(500);
+    printf("	M");
+    Sleep(500);
+    printf("	P");
+    Sleep(500);
+    printf("	O");
+    Sleep(500);
+    printf("	K");
+    Sleep(500);
+    printf("	O");
+    Sleep(1000);
+    printf("\n\n\n\n				  		  Press Any Key");
+    getch();
+
+}
+
+void credit()
+{
+    /*
+    지금까지 유저들의 점수 및 통계를 크레딧으로 표기할 예정
+    예) AAA : 230점\n AAB : 210점...
+    최고 점수 : ?점
+    평균 점수 : ?점
+    ...
+    */
+}
+
+//게임 승리 
+void victory()
+{
+    clrscr();
+    printf("\n\n\n\n\n\n\n\n\n\n					Congratulations! You are Win!");
+    Sleep(3000);
+    exit(0);
+}
 
 int main() {
     srand(time(NULL));
     enable_raw_mode();
+    title();
     load_maps();
     init_stage();
 
@@ -96,7 +159,7 @@ int main() {
                 init_stage();
             } else {
                 game_over = 1;
-                printf("\x1b[2J\x1b[H");
+                victory();
                 printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
                 printf("최종 점수: %d\n", score);
             }
@@ -168,7 +231,7 @@ void init_stage() {
 
 // 게임 화면 그리기
 void draw_game() {
-    printf("\x1b[2J\x1b[H");
+    clrscr();
     printf("Stage: %d | Score: %d\n", stage + 1, score);
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
@@ -377,6 +440,12 @@ void check_collisions() {
     }
 }
 
+#ifdef _WIN32
+int clrscr()
+{
+    system("cls");
+}
+#else
 // 비동기 키보드 입력 확인
 int kbhit() {
     struct termios oldt, newt;
@@ -397,3 +466,9 @@ int kbhit() {
     }
     return 0;
 }
+
+int clrscr()
+{
+    printf("\x1b[2J\x1b[H");
+}
+#endif
