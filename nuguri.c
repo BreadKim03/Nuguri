@@ -34,6 +34,7 @@ char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];
 int player_x, player_y;
 int stage = 0;
 int score = 0;
+int lives = 3; //플레이어 목숨 변수 추가
 
 // 플레이어 상태
 int is_jumping = 0;
@@ -64,36 +65,36 @@ void victory();
 void credit();
 int kbhit();
 
-//메인 메뉴 
+//메인 메뉴
 void title()
 {
-    printf("\n\n\n\n\n\n\n						T");
+    printf("\n\n\n\n\n\n\n                      T");
     Sleep(500);
-    printf("	H");
+    printf("    H");
     Sleep(500);
-    printf("	E");
+    printf("    E");
     Sleep(500);
-    printf("\n\n			P");
+    printf("\n\n            P");
     Sleep(500);
-    printf("	O");
+    printf("    O");
     Sleep(500);
-    printf("	M");
+    printf("    M");
     Sleep(500);
-    printf("	P");
+    printf("    P");
     Sleep(500);
-    printf("	O");
+    printf("    O");
     Sleep(500);
-    printf("	M");
+    printf("    M");
     Sleep(500);
-    printf("	P");
+    printf("    P");
     Sleep(500);
-    printf("	O");
+    printf("    O");
     Sleep(500);
-    printf("	K");
+    printf("    K");
     Sleep(500);
-    printf("	O");
+    printf("    O");
     Sleep(1000);
-    printf("\n\n\n\n				  		  Press Any Key");
+    printf("\n\n\n\n                          Press Any Key");
     getch();
 
 }
@@ -109,11 +110,11 @@ void credit()
     */
 }
 
-//게임 승리 
+//게임 승리
 void victory()
 {
     clrscr();
-    printf("\n\n\n\n\n\n\n\n\n\n					Congratulations! You are Win!");
+    printf("\n\n\n\n\n\n\n\n\n\n                    Congratulations! You are Win!");
     Sleep(3000);
     exit(0);
 }
@@ -163,6 +164,10 @@ int main() {
                 printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
                 printf("최종 점수: %d\n", score);
             }
+        }
+        if (lives <=0){
+            game_over = 1;
+            credit();
         }
     }
 
@@ -232,7 +237,7 @@ void init_stage() {
 // 게임 화면 그리기
 void draw_game() {
     clrscr();
-    printf("Stage: %d | Score: %d\n", stage + 1, score);
+    printf("Stage: %d | Score: %d\n | Lives: %d\n", stage + 1, score, lives);
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
@@ -246,7 +251,7 @@ void draw_game() {
             }
         }
     }
-    
+
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected) {
             display_map[coins[i].y][coins[i].x] = 'C';
@@ -292,7 +297,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             next_x++;
             break;
         case 'w': // 사다리에서 위로
-            if (on_ladder) next_y--; 
+            if (on_ladder) next_y--;
             break;
         case 's': // 사다리에서 아래로
             if (on_ladder && // 사다리에 있고
@@ -367,7 +372,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
                     player_y = next_y; // 이동
                 } else {
                     // 천장에 부딪히면 위로 이동 중단
-                    velocity_y = 0; 
+                    velocity_y = 0;
                 }
                 velocity_y++;
             } else {
@@ -381,7 +386,10 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
                     if (player_y + 1 < MAP_HEIGHT) {
                         player_y++; // 한 칸 아래로 떨어짐
                     } else {
-                        init_stage(); // 맵 아래로 완전히 떨어지면 스테이지 리셋
+                        lives--;
+                        if(lives > 0){
+                            init_stage(); // 맵 아래로 완전히 떨어지면 스테이지 리셋
+                        }
                         return;
                     }
                 } else {
@@ -398,7 +406,10 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
                 if (player_y + 1 < MAP_HEIGHT) {
                     player_y++; // 한 칸씩 아래로 떨어짐
                 } else {
-                    init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
+                    lives--;
+                    if(lives > 0){
+                        init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
+                    }
                     return;
                 }
             }
@@ -406,8 +417,11 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     }
 
     // 만약 맵 아래로 완전히 나가게 되면 스테이지 리셋
-    if (player_y >= MAP_HEIGHT) { 
-        init_stage(); 
+    if (player_y >= MAP_HEIGHT) {
+        lives--;
+        if(lives > 0){
+            init_stage();
+        }
     }
 }
 
@@ -428,7 +442,10 @@ void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             score = (score > 50) ? score - 50 : 0;
-            init_stage();
+            lives--;
+            if(lives>0){
+                init_stage();
+            }
             return;
         }
     }
