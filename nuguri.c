@@ -3,13 +3,14 @@
 #include <string.h>
 #ifdef _WIN32
 #include <time.h>
+#include <conio.h>
+#include <Windows.h>
 #else
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <time.h>
 #endif
-
 
 // 맵 및 게임 요소 정의 (수정된 부분)
 #define MAP_WIDTH 40  // 맵 너비를 40으로 변경
@@ -47,10 +48,19 @@ int enemy_count = 0;
 Coin coins[MAX_COINS];
 int coin_count = 0;
 
+#ifdef _WIN32
+DWORD oldt;
+#else
 // 터미널 설정
 struct termios orig_termios;
+#endif
 
 // 함수 선언
+void msleep(int t);
+void clrscr();
+void disable_raw_mode();
+void enable_raw_mode();
+int mkbhit();
 void load_maps();
 void init_stage();
 void draw_game();
@@ -58,45 +68,48 @@ void update_game(char input);
 void move_player(char input);
 void move_enemies();
 void check_collisions();
-void disable_raw_mode();
-void enable_raw_mode();
 void title();
 void victory();
 void credit();
-int kbhit();
+void printstage(int stage);
 
 //메인 메뉴
 void title()
 {
-    printf("\n\n\n\n\n\n\n                      T");
-    Sleep(500);
+    printf("\n\n\n\n\n\n\n                              T");
+    msleep(500);
     printf("    H");
-    Sleep(500);
+    msleep(500);
     printf("    E");
-    Sleep(500);
+    msleep(500);
     printf("\n\n            P");
-    Sleep(500);
+    msleep(500);
     printf("    O");
-    Sleep(500);
+    msleep(500);
     printf("    M");
-    Sleep(500);
+    msleep(500);
     printf("    P");
-    Sleep(500);
+    msleep(500);
     printf("    O");
-    Sleep(500);
+    msleep(500);
     printf("    M");
-    Sleep(500);
+    msleep(500);
     printf("    P");
-    Sleep(500);
+    msleep(500);
     printf("    O");
-    Sleep(500);
+    msleep(500);
     printf("    K");
-    Sleep(500);
+    msleep(500);
     printf("    O");
-    Sleep(1000);
-    printf("\n\n\n\n                          Press Any Key");
-    getch();
+    msleep(5000);
+    return;
+}
 
+void printstage(int stage)
+{
+    clrscr();
+    printf("\n\n\n\n\n\n\n                              Stage %d", stage + 1);
+    msleep(5000);
 }
 
 void credit()
@@ -115,7 +128,7 @@ void victory()
 {
     clrscr();
     printf("\n\n\n\n\n\n\n\n\n\n                    Congratulations! You are Win!");
-    Sleep(3000);
+    msleep(3000);
     exit(0);
 }
 
@@ -125,12 +138,41 @@ int main() {
     title();
     load_maps();
     init_stage();
+    printstage(stage);
 
     char c = '\0';
     int game_over = 0;
 
     while (!game_over && stage < MAX_STAGES) {
-        if (kbhit()) {
+#ifdef _WIN32
+        if (mkbhit()) {
+            int k = _getch();
+            if (k != 0 && k != 0xE0)
+            {
+                c = (char)k;
+
+                if (c == 'q')
+                {
+                    game_over = 1;
+                    continue;
+                }
+            }
+            else
+            {
+                k = _getch();
+                switch (k) {
+                case 72: c = 'w'; break; // Up
+                case 80: c = 's'; break; // Down
+                case 77: c = 'd'; break; // Right
+                case 75: c = 'a'; break; // Left
+                }
+            }
+        }
+        else {
+            c = '\0';
+        }
+#else
+        if (mkbhit()) {
             c = getchar();
             if (c == 'q') {
                 game_over = 1;
@@ -139,33 +181,36 @@ int main() {
             if (c == '\x1b') {
                 getchar(); // '['
                 switch (getchar()) {
-                    case 'A': c = 'w'; break; // Up
-                    case 'B': c = 's'; break; // Down
-                    case 'C': c = 'd'; break; // Right
-                    case 'D': c = 'a'; break; // Left
+                case 'A': c = 'w'; break; // Up
+                case 'B': c = 's'; break; // Down
+                case 'C': c = 'd'; break; // Right
+                case 'D': c = 'a'; break; // Left
                 }
             }
-        } else {
+        }
+        else {
             c = '\0';
         }
-
+#endif
         update_game(c);
         draw_game();
-        usleep(90000);
+        msleep(90);
 
         if (map[stage][player_y][player_x] == 'E') {
             stage++;
             score += 100;
             if (stage < MAX_STAGES) {
                 init_stage();
-            } else {
+            }
+            else {
                 game_over = 1;
                 victory();
+                clrscr();
                 printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
                 printf("최종 점수: %d\n", score);
             }
         }
-        if (lives <=0){
+        if (lives <= 0) {
             game_over = 1;
             credit();
         }
@@ -173,41 +218,6 @@ int main() {
 
     disable_raw_mode();
     return 0;
-}
-
-
-// 터미널 Raw 모드 활성화/비활성화
-void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
-void enable_raw_mode() {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    atexit(disable_raw_mode);
-    struct termios raw = orig_termios;
-    raw.c_lflag &= ~(ECHO | ICANON);
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
-// 맵 파일 로드
-void load_maps() {
-    FILE *file = fopen("map.txt", "r");
-    if (!file) {
-        perror("map.txt 파일을 열 수 없습니다.");
-        exit(1);
-    }
-    int s = 0, r = 0;
-    char line[MAP_WIDTH + 2]; // 버퍼 크기는 MAP_WIDTH에 따라 자동 조절됨
-    while (s < MAX_STAGES && fgets(line, sizeof(line), file)) {
-        if ((line[0] == '\n' || line[0] == '\r') && r > 0) {
-            s++;
-            r = 0;
-            continue;
-        }
-        if (r < MAP_HEIGHT) {
-            line[strcspn(line, "\n\r")] = 0;
-            strncpy(map[s][r], line, MAP_WIDTH + 1);
-            r++;
-        }
-    }
-    fclose(file);
 }
 
 
@@ -224,11 +234,18 @@ void init_stage() {
             if (cell == 'S') {
                 player_x = x;
                 player_y = y;
-            } else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
-                enemies[enemy_count] = (Enemy){x, y, (rand() % 2) * 2 - 1};
+            }
+            else if (cell == 'X' && enemy_count < MAX_ENEMIES) {
+                enemies[enemy_count].x = x;
+                enemies[enemy_count].y = y;
+                enemies[enemy_count].dir = (rand() % 2) * 2 - 1;
                 enemy_count++;
-            } else if (cell == 'C' && coin_count < MAX_COINS) {
-                coins[coin_count++] = (Coin){x, y, 0};
+            }
+            else if (cell == 'C' && coin_count < MAX_COINS) {
+                coins[coin_count].x = x;
+                coins[coin_count].y = y;
+                coins[coin_count].collected = 0;
+                coin_count++;
             }
         }
     }
@@ -241,12 +258,13 @@ void draw_game() {
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
-    for(int y=0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x < MAP_WIDTH; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
             char cell = map[stage][y][x];
             if (cell == 'S' || cell == 'X' || cell == 'C') {
                 display_map[y][x] = ' ';
-            } else {
+            }
+            else {
                 display_map[y][x] = cell;
             }
         }
@@ -265,7 +283,7 @@ void draw_game() {
     display_map[player_y][player_x] = 'P';
 
     for (int y = 0; y < MAP_HEIGHT; y++) {
-        for(int x=0; x< MAP_WIDTH; x++){
+        for (int x = 0; x < MAP_WIDTH; x++) {
             printf("%c", display_map[y][x]);
         }
         printf("\n");
@@ -290,40 +308,41 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
 
     // 이동 기능 입력
     switch (input) {
-        case 'a': // 왼쪽
-            next_x--;
-            break;
-        case 'd': // 오른쪽
-            next_x++;
-            break;
-        case 'w': // 사다리에서 위로
-            if (on_ladder) next_y--;
-            break;
-        case 's': // 사다리에서 아래로
-            if (on_ladder && // 사다리에 있고
-                player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
-                map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
-                next_y++; // 이동
-            }
-            break;
-        case ' ':
-            // 바닥이나 사다리 위에 있을 때만 점프
-            char below;
+    case 'a': // 왼쪽
+        next_x--;
+        break;
+    case 'd': // 오른쪽
+        next_x++;
+        break;
+    case 'w': // 사다리에서 위로
+        if (on_ladder) next_y--;
+        break;
+    case 's': // 사다리에서 아래로
+        if (on_ladder && // 사다리에 있고
+            player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
+            map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
+            next_y++; // 이동
+        }
+        break;
+    case ' ':
+        // 바닥이나 사다리 위에 있을 때만 점프
+        char below;
 
-            if (player_y + 1 < MAP_HEIGHT) {
-                below = map[stage][player_y + 1][player_x];
-            } else {
-                below = '#';   // 맵 아래는 바닥 취급
-            }
+        if (player_y + 1 < MAP_HEIGHT) {
+            below = map[stage][player_y + 1][player_x];
+        }
+        else {
+            below = '#';   // 맵 아래는 바닥 취급
+        }
 
-            // 점프 중은 아니고 바닥 또는 사다리 위일 때 점프 가능
-            if (!is_jumping && (below == '#' || on_ladder)) {
-                is_jumping = 1;
-                velocity_y = -2;
-            }
-            break;
-        default:
-            break;
+        // 점프 중은 아니고 바닥 또는 사다리 위일 때 점프 가능
+        if (!is_jumping && (below == '#' || on_ladder)) {
+            is_jumping = 1;
+            velocity_y = -2;
+        }
+        break;
+    default:
+        break;
     }
 
     // 좌우로 이동할 때 맵 안에서만 이동 가능
@@ -342,7 +361,8 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     if (player_y + 1 < MAP_HEIGHT) {
         // 발 아래 칸이 맵 범위 안이면 실제 타일을 읽는다
         floor_tile = map[stage][player_y + 1][player_x];
-    } else {
+    }
+    else {
         // 맵 아래로 벗어나면 바닥으로 취급
         floor_tile = '#';
     }
@@ -356,7 +376,8 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             is_jumping = 0; // 점프 상태 해제
             velocity_y = 0; // 점프 속도 0으로 초기화
         }
-    } else {
+    }
+    else {
         // 점프 중이면
         if (is_jumping) {
             next_y = player_y + velocity_y; // 현재 속도만큼 y좌표 후보 계산
@@ -370,34 +391,38 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
                 if (next_y >= 0 && next_y < MAP_HEIGHT &&
                     map[stage][next_y][player_x] != '#') { // 위쪽 칸이 벽이 아니면
                     player_y = next_y; // 이동
-                } else {
+                }
+                else {
                     // 천장에 부딪히면 위로 이동 중단
                     velocity_y = 0;
                 }
                 velocity_y++;
-            } else {
+            }
+            else {
                 // 아래로 떨어질 때 한 칸씩만 떨어지면서 바닥 체크
                 floor_tile =
                     (player_y + 1 < MAP_HEIGHT)
-                        ? map[stage][player_y + 1][player_x]
-                        : '#';
+                    ? map[stage][player_y + 1][player_x]
+                    : '#';
 
-                if (floor_tile != '#') { // 발 아래가 바닥이 아니면
-                    if (player_y + 1 < MAP_HEIGHT) {
-                        player_y++; // 한 칸 아래로 떨어짐
-                    } else {
-                        lives--;
-                        if(lives > 0){
-                            init_stage(); // 맵 아래로 완전히 떨어지면 스테이지 리셋
+                    if (floor_tile != '#') { // 발 아래가 바닥이 아니면
+                        if (player_y + 1 < MAP_HEIGHT) {
+                            player_y++; // 한 칸 아래로 떨어짐
                         }
-                        return;
+                        else {
+                            lives--;
+                            if (lives > 0) {
+                                init_stage(); // 맵 아래로 완전히 떨어지면 스테이지 리셋
+                            }
+                            return;
+                        }
                     }
-                } else {
-                    // 발 아래가 바로 바닥이면 착지
-                    is_jumping = 0;
-                    velocity_y = 0;
-                }
-                velocity_y++; // 중력이 커지면서 낙하 속도 증가
+                    else {
+                        // 발 아래가 바로 바닥이면 착지
+                        is_jumping = 0;
+                        velocity_y = 0;
+                    }
+                    velocity_y++; // 중력이 커지면서 낙하 속도 증가
             }
         }
         // 점프 상태가 아닌 기본 중력 상태
@@ -405,9 +430,10 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             if (floor_tile != '#' && floor_tile != 'H') {
                 if (player_y + 1 < MAP_HEIGHT) {
                     player_y++; // 한 칸씩 아래로 떨어짐
-                } else {
+                }
+                else {
                     lives--;
-                    if(lives > 0){
+                    if (lives > 0) {
                         init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
                     }
                     return;
@@ -419,7 +445,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     // 만약 맵 아래로 완전히 나가게 되면 스테이지 리셋
     if (player_y >= MAP_HEIGHT) {
         lives--;
-        if(lives > 0){
+        if (lives > 0) {
             init_stage();
         }
     }
@@ -431,7 +457,8 @@ void move_enemies() {
         int next_x = enemies[i].x + enemies[i].dir;
         if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
-        } else {
+        }
+        else {
             enemies[i].x = next_x;
         }
     }
@@ -443,7 +470,7 @@ void check_collisions() {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             score = (score > 50) ? score - 50 : 0;
             lives--;
-            if(lives>0){
+            if (lives > 0) {
                 init_stage();
             }
             return;
@@ -457,14 +484,73 @@ void check_collisions() {
     }
 }
 
+// 맵 파일 로드
+void load_maps() {
+    FILE* file = fopen("map.txt", "r");
+    if (!file) {
+        perror("map.txt 파일을 열 수 없습니다.");
+        exit(1);
+    }
+    int s = 0, r = 0;
+    char line[MAP_WIDTH + 2]; // 버퍼 크기는 MAP_WIDTH에 따라 자동 조절됨
+    while (s < MAX_STAGES && fgets(line, sizeof(line), file)) {
+        if ((line[0] == '\n' || line[0] == '\r') && r > 0) {
+            s++;
+            r = 0;
+            continue;
+        }
+        if (r < MAP_HEIGHT) {
+            line[strcspn(line, "\n\r")] = 0;
+            strncpy(map[s][r], line, MAP_WIDTH + 1);
+            r++;
+        }
+    }
+    fclose(file);
+}
+
 #ifdef _WIN32
-int clrscr()
+void clrscr()
 {
     system("cls");
 }
+
+void msleep(int t)
+{
+    Sleep(t);
+}
+
+void disable_raw_mode()
+{
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    SetConsoleMode(hStdin, oldt);
+}
+
+void enable_raw_mode()
+{
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    GetConsoleMode(hStdin, &oldt);
+
+    DWORD newt = oldt;
+
+    newt &= ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT);
+    newt &= ~(ENABLE_PROCESSED_INPUT);
+    SetConsoleMode(hStdin, newt);
+    atexit(disable_raw_mode);
+}
+
+int mkbhit()
+{
+    return _kbhit();
+}
 #else
+
+void msleep(int t)
+{
+    usleep(t * 1000);
+}
+
 // 비동기 키보드 입력 확인
-int kbhit() {
+int mkbhit() {
     struct termios oldt, newt;
     int ch;
     int oldf;
@@ -477,15 +563,25 @@ int kbhit() {
     ch = getchar();
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-    if(ch != EOF) {
+    if (ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
     return 0;
 }
 
-int clrscr()
+void clrscr()
 {
     printf("\x1b[2J\x1b[H");
+}
+
+// 터미널 Raw 모드 활성화/비활성화
+void disable_raw_mode() { tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); }
+void enable_raw_mode() {
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 #endif
