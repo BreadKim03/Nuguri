@@ -30,6 +30,19 @@ typedef struct {
     int collected;
 } Coin;
 
+//게임 결과
+static struct result
+{
+    char name[30];
+    long point;
+    int year;
+    int month;
+    int day;
+    int hour;
+    int min;
+    int rank;
+}temp_result;
+
 // 전역 변수
 char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];
 int player_x, player_y;
@@ -72,6 +85,8 @@ void title();
 void victory();
 void credit();
 void printstage(int stage);
+void Savedata(char* name);
+void credit();
 
 //메인 메뉴
 void title()
@@ -114,13 +129,62 @@ void printstage(int stage)
 
 void credit()
 {
-    /*
-    지금까지 유저들의 점수 및 통계를 크레딧으로 표기할 예정
-    예) AAA : 230점\n AAB : 210점...
-    최고 점수 : ?점
-    평균 점수 : ?점
-    ...
-    */
+    FILE* fp;
+    struct result* records;
+    long num_records = 0;
+    struct result current_record;
+    char name[20];
+    char date[11];
+    char time[6];
+    long score;
+    int year, month, day, hour, min;
+
+    clrscr();
+    fp = fopen("PlayerRecords.txt", "r");
+
+    if (fp == NULL)
+    {
+        printf("기록이 없거나 불러오는 데 실패했습니다.");
+        msleep(4000);
+        return;
+    }
+
+    printf("\n===========전체 기록===========\n");
+    while (fscanf(fp, "%s %ld %d-%d-%d %d시 %d분", name, &score, &year, &month, &day, &hour, &min) == 7)
+    {
+        printf("\n%s 점수: %ld, 날짜: %d-%d-%d %d시 %d분\n", name, score, year, month, day, hour, min);
+    }
+
+    fclose(fp);
+
+}
+
+void Savedata(char* name)
+{
+    time_t t = time(NULL);
+    struct tm* tm = localtime(&t);
+    FILE* fp;
+
+    struct result tmp;
+    strcpy(tmp.name, name);
+    tmp.point = score;
+    tmp.year = tm->tm_year + 1900;
+    tmp.month = tm->tm_mon + 1;
+    tmp.day = tm->tm_mday;
+    tmp.hour = tm->tm_hour;
+    tmp.min = tm->tm_min;
+
+    fp = fopen("PlayerRecords.txt", "a");
+    if (fp == NULL)
+    {
+        printf("기록 실패");
+        return;
+    }
+
+    fprintf(fp, "%s %ld %d-%d-%d %d시 %d분\n", tmp.name, tmp.point, tmp.year, tmp.month, tmp.day, tmp.hour, tmp.min);
+    printf("\n\n\n					      당신의 기록이 저장되었습니다!");
+    fclose(fp);
+    Sleep(1000);
 }
 
 //게임 승리
@@ -129,7 +193,6 @@ void victory()
     clrscr();
     printf("\n\n\n\n\n\n\n\n\n\n                    Congratulations! You are Win!");
     msleep(3000);
-    exit(0);
 }
 
 int main() {
@@ -206,8 +269,13 @@ int main() {
                 game_over = 1;
                 victory();
                 clrscr();
-                printf("축하합니다! 모든 스테이지를 클리어했습니다!\n");
+                printf("게임을 클리어하는 데 %d번의 목숨을 사용하였습니다.\n", 3 - lives);
                 printf("최종 점수: %d\n", score);
+                printf("플레이어 이름을 입력해주세요 : ");
+                char name[10];
+                scanf("%s", &name);
+                Savedata(name);
+                credit();
             }
         }
         if (lives <= 0) {
