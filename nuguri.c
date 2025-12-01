@@ -84,6 +84,7 @@ void move_player(char input);
 void move_enemies();
 void check_collisions();
 void title();
+void gameover();
 void victory();
 void credit();
 void printstage(int stage);
@@ -124,6 +125,28 @@ void title()
     printf("    O");
     msleep(5000);
     return;
+}
+
+void gameover()
+{
+    sound_go();
+    printf("\n\n\n\n\n\n\n				G");
+    msleep(500);
+    printf("	A");
+    msleep(500);
+    printf("	M");
+    msleep(500);
+    printf("	E");
+    msleep(500);
+    printf("	O");
+    msleep(500);
+    printf("	V");
+    msleep(500);
+    printf("	E");
+    msleep(500);
+    printf("	R");
+    msleep(1500);
+    credit();
 }
 
 void printstage(int stage)
@@ -292,8 +315,8 @@ int main() {
         }
         if (lives <= 0) {
             game_over = 1;
-            sound_go();
-            credit();
+            clrscr();
+            gameover();
         }
     }
 
