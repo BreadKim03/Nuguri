@@ -5,6 +5,8 @@
 #include <time.h>
 #include <conio.h>
 #include <Windows.h>
+#include <mmsystem.h>
+#pragma comment(lib,"winmm.lib")
 #else
 #include <unistd.h>
 #include <termios.h>
@@ -87,6 +89,10 @@ void credit();
 void printstage(int stage);
 void Savedata(char* name);
 void credit();
+void sound_j();
+void sound_c();
+void sound_go();
+void sound_cl();
 
 //메인 메뉴
 void title()
@@ -267,6 +273,7 @@ int main() {
         if (map[stage][player_y][player_x] == 'E') {
             stage++;
             score += 100;
+            sound_cl();
             if (stage < MAX_STAGES) {
                 init_stage();
             }
@@ -285,6 +292,7 @@ int main() {
         }
         if (lives <= 0) {
             game_over = 1;
+            sound_go();
             credit();
         }
     }
@@ -430,6 +438,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             is_jumping = 1;     // 점프 시작
             velocity_y = 3;     // 위로 3칸 올라갈 힘 부여
         }
+        sound_j();
         break;
     }
 
@@ -538,6 +547,7 @@ void check_collisions() {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
             coins[i].collected = 1;
             score += 20;
+            sound_c();
         }
     }
 }
@@ -600,6 +610,26 @@ int mkbhit()
 {
     return _kbhit();
 }
+
+void sound_j()
+{
+    PlaySound(TEXT("jump.wav"), NULL, SND_FILENAME | SND_ASYNC);
+}
+
+void sound_c()
+{
+    PlaySound(TEXT("coin.wav"), NULL, SND_FILENAME | SND_ASYNC);
+}
+
+void sound_go()
+{
+    PlaySound(TEXT("gameover.wav"), NULL, SND_FILENAME | SND_ASYNC);
+}
+
+void sound_cl()
+{
+    PlaySound(TEXT("clear.wav"), NULL, SND_FILENAME | SND_ASYNC);
+}
 #else
 
 void msleep(int t)
@@ -641,5 +671,25 @@ void enable_raw_mode() {
     struct termios raw = orig_termios;
     raw.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+}
+
+void sound_j()
+{
+    system("aplay jump.wav");
+}
+
+void sound_c()
+{
+    system("aplay coin.wav");
+}
+
+void sound_go()
+{
+    system("aplay gameover.wav");
+}
+
+void sound_cl()
+{
+    system("aplay clear.wav");
 }
 #endif
