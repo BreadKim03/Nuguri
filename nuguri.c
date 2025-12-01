@@ -196,6 +196,11 @@ void victory()
 }
 
 int main() {
+    //윈도일 때 인코딩 변경
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     srand(time(NULL));
     enable_raw_mode();
     title();
@@ -378,52 +383,58 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     char floor_tile;
     if (player_y + 1 < MAP_HEIGHT) {
         floor_tile = map[stage][player_y + 1][player_x];  // 바로 아래칸 읽기
-    } else {
+    }
+    else {
         floor_tile = '#';  // 맵 아래는 바닥(#)로 처리
     }
 
     // 이동 기능 입력
     switch (input) {
-        case 'a': // 왼쪽 
-            next_x--;
-            break;
+    case 'a': // 왼쪽 
+        next_x--;
+        break;
 
-        case 'd': // 오른쪽
-            next_x++;
-            break;
+    case 'd': // 오른쪽
+        next_x++;
+        break;
 
-        case 'w': // 사다리에서 위로
-            if (on_ladder) next_y--;
-            break;
+    case 'w': // 사다리에서 위로
+        if (on_ladder && map[stage][player_y - 1][player_x] != '#') next_y--;
+        else if (on_ladder && map[stage][player_y-1][player_x] == '#')
+        {
+            next_y -= 2;
+        }
+        break;
 
-        case 's': // 사다리에서 아래로
-            if (on_ladder && // 사다리에 있고
-                player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
-                map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
-                next_y++; // 이동
-            }
-            break;
+    case 's': // 사다리에서 아래로
+        if (on_ladder && // 사다리에 있고
+            player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
+            map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
+            next_y++; // 이동
+        }
+        break;
 
-        case ' ': { // 점프 키 처리
-            char below;
+    case ' ': { // 점프 키 처리
+        char below;
 
-            // 발 아래칸이 맵 범위 안이면 그 칸을 읽고
-            if (player_y + 1 < MAP_HEIGHT) {
-                below = map[stage][player_y + 1][player_x];
-            } else {
-                below = '#'; // 맵 아래는 바닥 취급
-            }
-
-            // 점프 중이 아니고 바닥 또는 사다리 위일 때만 점프 가능
-            if (!is_jumping && (below == '#' || on_ladder)) {
-                is_jumping = 1;     // 점프 시작
-                velocity_y = 3;     // 위로 3칸 올라갈 힘 부여
-            }
-            break;
+        // 발 아래칸이 맵 범위 안이면 그 칸을 읽고
+        if (player_y + 1 < MAP_HEIGHT) {
+            below = map[stage][player_y + 1][player_x];
+        }
+        else {
+            below = '#'; // 맵 아래는 바닥 취급
         }
 
-        default:
-            break;
+        // 점프 중이 아니고 바닥 또는 사다리 위일 때만 점프 가능
+        if (!is_jumping && (below == '#' || on_ladder)) {
+            is_jumping = 1;     // 점프 시작
+            velocity_y = 3;     // 위로 3칸 올라갈 힘 부여
+        }
+        break;
+    }
+
+    default:
+        break;
     }
 
     // 좌우로 이동할 때 맵 안에서만 이동 가능
@@ -440,7 +451,8 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
 
     if (player_y + 1 < MAP_HEIGHT) {
         floor_tile = map[stage][player_y + 1][player_x];
-    } else {
+    }
+    else {
         floor_tile = '#';
     }
 
@@ -464,12 +476,13 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             if (jump_y >= 0 && map[stage][jump_y][player_x] != '#') {
                 player_y = jump_y;
                 velocity_y--;          // 위로 올라갈 힘 줄임
-            } else {
+            }
+            else {
                 // 천장에 부딪히면 점프 종료
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        } 
+        }
         else {
             // 더 이상 위로 올라갈 힘이 없으면 점프 끝
             is_jumping = 0;
@@ -482,7 +495,8 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
         if (floor_tile != '#' && floor_tile != 'H') {
             if (player_y + 1 < MAP_HEIGHT) {
                 player_y++; // 한 칸 아래로 떨어짐
-            } else {
+            }
+            else {
                 init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
                 return;
             }
