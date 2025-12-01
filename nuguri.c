@@ -684,7 +684,7 @@ int mkbhit() {
 
 void clrscr()
 {
-    printf("\x1b[2J\x1b[H");
+    printf("\x1b[H\x1b[J");
 }
 
 // 터미널 Raw 모드 활성화/비활성화
