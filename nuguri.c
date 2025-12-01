@@ -151,9 +151,6 @@ void gameover()
 
 void printstage(int stage)
 {
-#ifdef _WIN32
-    system("cls");
-#endif
     clrscr();
     printf("\n\n\n\n\n\n\n                              Stage %d", stage + 1);
     msleep(5000);
@@ -171,9 +168,6 @@ void credit()
     long score;
     int year, month, day, hour, min;
 
-#ifdef _WIN32
-    system("cls");
-#endif
     clrscr();
     fp = fopen("PlayerRecords.txt", "r");
 
@@ -225,9 +219,6 @@ void Savedata(char* name)
 //게임 승리
 void victory()
 {
-#ifdef _WIN32
-    system("cls");
-#endif
     clrscr();
     printf("\n\n\n\n\n\n\n\n\n\n                    Congratulations! You are Win!");
     msleep(3000);
@@ -245,9 +236,6 @@ int main() {
     load_maps();
     init_stage();
     printstage(stage);
-#ifdef _WIN32
-    system("cls");
-#endif
 
     char c = '\0';
     int game_over = 0;
@@ -315,9 +303,6 @@ int main() {
             else {
                 game_over = 1;
                 victory();
-            #ifdef _WIN32
-                system("cls");
-            #endif
                 clrscr();
                 printf("게임을 클리어하는 데 %d번의 목숨을 사용하였습니다.\n", 3 - lives);
                 printf("최종 점수: %d\n", score);
@@ -331,9 +316,6 @@ int main() {
         }
         if (lives <= 0) {
             game_over = 1;
-        #ifdef _WIN32
-            system("cls");
-        #endif
             clrscr();
             gameover();
         }
@@ -621,7 +603,7 @@ void load_maps() {
 #ifdef _WIN32
 void clrscr()
 {
-    printf("\x1b[H");
+    system("cls");
 }
 
 void msleep(int t)
