@@ -367,56 +367,69 @@ void update_game(char input) {
 
 // 플레이어 이동 로직
 void move_player(char input) { // 키 입력(input)을 받아 플레이어 위치 바꾸는 함수
-    int next_x = player_x; // 이동 후 x좌표
-    int next_y = player_y; // 이동 후 y좌표
+    int next_x = player_x;   // 이동 후 x좌표
+    int next_y = player_y;   // 이동 후 y좌표
 
-    // 현재 타일 기준 상태
-    char current_tile = map[stage][player_y][player_x]; // 플레이어가 지금 서 있는 칸의 문자
-    on_ladder = (current_tile == 'H'); // 현재 칸이 사다리면 1, 아니면 0
+    // 현재 플레이어가 서 있는 칸(타일)
+    char current_tile = map[stage][player_y][player_x]; //플레이어가 지금 서 있는 칸의 문자
+    on_ladder = (current_tile == 'H');  // 현재 칸이 사다리면 1, 아니면 0
+
+    // 발 아래 칸이 무엇인지 확인
+    char floor_tile;
+    if (player_y + 1 < MAP_HEIGHT) {
+        floor_tile = map[stage][player_y + 1][player_x];  // 바로 아래칸 읽기
+    } else {
+        floor_tile = '#';  // 맵 아래는 바닥(#)로 처리
+    }
 
     // 이동 기능 입력
     switch (input) {
-    case 'a': // 왼쪽
-        next_x--;
-        break;
-    case 'd': // 오른쪽
-        next_x++;
-        break;
-    case 'w': // 사다리에서 위로
-        if (on_ladder) next_y--;
-        break;
-    case 's': // 사다리에서 아래로
-        if (on_ladder && // 사다리에 있고
-            player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
-            map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
-            next_y++; // 이동
-        }
-        break;
-    case ' ':
-        // 바닥이나 사다리 위에 있을 때만 점프
-        char below;
+        case 'a': // 왼쪽 
+            next_x--;
+            break;
 
-        if (player_y + 1 < MAP_HEIGHT) {
-            below = map[stage][player_y + 1][player_x];
-        }
-        else {
-            below = '#';   // 맵 아래는 바닥 취급
+        case 'd': // 오른쪽
+            next_x++;
+            break;
+
+        case 'w': // 사다리에서 위로
+            if (on_ladder) next_y--;
+            break;
+
+        case 's': // 사다리에서 아래로
+            if (on_ladder && // 사다리에 있고
+                player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
+                map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
+                next_y++; // 이동
+            }
+            break;
+
+        case ' ': { // 점프 키 처리
+            char below;
+
+            // 발 아래칸이 맵 범위 안이면 그 칸을 읽고
+            if (player_y + 1 < MAP_HEIGHT) {
+                below = map[stage][player_y + 1][player_x];
+            } else {
+                below = '#'; // 맵 아래는 바닥 취급
+            }
+
+            // 점프 중이 아니고 바닥 또는 사다리 위일 때만 점프 가능
+            if (!is_jumping && (below == '#' || on_ladder)) {
+                is_jumping = 1;     // 점프 시작
+                velocity_y = 3;     // 위로 3칸 올라갈 힘 부여
+            }
+            break;
         }
 
-        // 점프 중은 아니고 바닥 또는 사다리 위일 때 점프 가능
-        if (!is_jumping && (below == '#' || on_ladder)) {
-            is_jumping = 1;
-            velocity_y = -2;
-        }
-        break;
-    default:
-        break;
+        default:
+            break;
     }
 
     // 좌우로 이동할 때 맵 안에서만 이동 가능
     if (next_x != player_x) {
         if (next_x >= 0 && next_x < MAP_WIDTH && // x좌표 맵 범위 안에 있고
-            map[stage][player_y][next_x] != '#') { // 그 칸이 벽이 아니라면
+            map[stage][player_y][next_x] != '#') {  // 그 칸이 벽이 아니라면
             player_x = next_x; // 좌우 이동
         }
     }
@@ -425,13 +438,9 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     current_tile = map[stage][player_y][player_x]; // 좌우 이동 후, 현재 플레이어가 있는 칸 읽기
     on_ladder = (current_tile == 'H'); // 이동 후에 사다리 위인지
 
-    char floor_tile;
     if (player_y + 1 < MAP_HEIGHT) {
-        // 발 아래 칸이 맵 범위 안이면 실제 타일을 읽는다
         floor_tile = map[stage][player_y + 1][player_x];
-    }
-    else {
-        // 맵 아래로 벗어나면 바닥으로 취급
+    } else {
         floor_tile = '#';
     }
 
@@ -445,77 +454,44 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             velocity_y = 0; // 점프 속도 0으로 초기화
         }
     }
-    else {
-        // 점프 중이면
-        if (is_jumping) {
-            next_y = player_y + velocity_y; // 현재 속도만큼 y좌표 후보 계산
-            // 화면 위로 나가는 것 방지
-            if (next_y < 0) {
-                next_y = 0;
-            }
+    // 사다리가 아닐 때 점프/중력 처리
+    else if (is_jumping) {
+        // 점프 중 위로 올라가는 부분
+        if (velocity_y > 0) {
+            int jump_y = player_y - 1;  // 위로 1칸 이동
 
-            if (velocity_y < 0) { // 위로 올라가는 중
-                // 머리 위가 막혀 있으면 더 이상 못 감
-                if (next_y >= 0 && next_y < MAP_HEIGHT &&
-                    map[stage][next_y][player_x] != '#') { // 위쪽 칸이 벽이 아니면
-                    player_y = next_y; // 이동
-                }
-                else {
-                    // 천장에 부딪히면 위로 이동 중단
-                    velocity_y = 0;
-                }
-                velocity_y++;
+            // 위쪽 칸이 벽이 아니면 이동
+            if (jump_y >= 0 && map[stage][jump_y][player_x] != '#') {
+                player_y = jump_y;
+                velocity_y--;          // 위로 올라갈 힘 줄임
+            } else {
+                // 천장에 부딪히면 점프 종료
+                is_jumping = 0;
+                velocity_y = 0;
             }
-            else {
-                // 아래로 떨어질 때 한 칸씩만 떨어지면서 바닥 체크
-                floor_tile =
-                    (player_y + 1 < MAP_HEIGHT)
-                    ? map[stage][player_y + 1][player_x]
-                    : '#';
-
-                    if (floor_tile != '#') { // 발 아래가 바닥이 아니면
-                        if (player_y + 1 < MAP_HEIGHT) {
-                            player_y++; // 한 칸 아래로 떨어짐
-                        }
-                        else {
-                            lives--;
-                            if (lives > 0) {
-                                init_stage(); // 맵 아래로 완전히 떨어지면 스테이지 리셋
-                            }
-                            return;
-                        }
-                    }
-                    else {
-                        // 발 아래가 바로 바닥이면 착지
-                        is_jumping = 0;
-                        velocity_y = 0;
-                    }
-                    velocity_y++; // 중력이 커지면서 낙하 속도 증가
-            }
-        }
-        // 점프 상태가 아닌 기본 중력 상태
+        } 
         else {
-            if (floor_tile != '#' && floor_tile != 'H') {
-                if (player_y + 1 < MAP_HEIGHT) {
-                    player_y++; // 한 칸씩 아래로 떨어짐
-                }
-                else {
-                    lives--;
-                    if (lives > 0) {
-                        init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
-                    }
-                    return;
-                }
+            // 더 이상 위로 올라갈 힘이 없으면 점프 끝
+            is_jumping = 0;
+            velocity_y = 0;
+        }
+    }
+    // 점프 상태가 아닌 기본 중력 상태
+    else {
+        // 발 아래가 공중이면 아래로 떨어짐
+        if (floor_tile != '#' && floor_tile != 'H') {
+            if (player_y + 1 < MAP_HEIGHT) {
+                player_y++; // 한 칸 아래로 떨어짐
+            } else {
+                init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
+                return;
             }
         }
     }
 
-    // 만약 맵 아래로 완전히 나가게 되면 스테이지 리셋
+    // 맵 아래로 완전히 넘어가면 스테이지 리셋
     if (player_y >= MAP_HEIGHT) {
-        lives--;
-        if (lives > 0) {
-            init_stage();
-        }
+        init_stage();
     }
 }
 
