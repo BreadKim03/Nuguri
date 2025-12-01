@@ -213,7 +213,7 @@ void Savedata(char* name)
     fprintf(fp, "%s %ld %d-%d-%d %d시 %d분\n", tmp.name, tmp.point, tmp.year, tmp.month, tmp.day, tmp.hour, tmp.min);
     printf("\n\n\n					      당신의 기록이 저장되었습니다!");
     fclose(fp);
-    Sleep(1000);
+    msleep(1000);
 }
 
 //게임 승리
@@ -306,9 +306,10 @@ int main() {
                 clrscr();
                 printf("게임을 클리어하는 데 %d번의 목숨을 사용하였습니다.\n", 3 - lives);
                 printf("최종 점수: %d\n", score);
+                disable_raw_mode();
                 printf("플레이어 이름을 입력해주세요 : ");
                 char name[10];
-                scanf("%s", &name);
+                scanf("%9s", name);
                 Savedata(name);
                 credit();
             }
@@ -698,21 +699,21 @@ void enable_raw_mode() {
 
 void sound_j()
 {
-    system("aplay jump.wav");
+    system("aplay jump.wav > /dev/null 2>&1 &");
 }
 
 void sound_c()
 {
-    system("aplay coin.wav");
+    system("aplay coin.wav > /dev/null 2>&1 &");
 }
 
 void sound_go()
 {
-    system("aplay gameover.wav");
+    system("aplay gameover.wav > /dev/null 2>&1 &");
 }
 
 void sound_cl()
 {
-    system("aplay clear.wav");
+    system("aplay clear.wav > /dev/null 2>&1 &");
 }
 #endif
