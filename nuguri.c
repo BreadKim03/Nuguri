@@ -130,21 +130,21 @@ void title()
 void gameover()
 {
     sound_go();
-    printf("\n\n\n\n\n\n\n				G");
+    printf("\n\n\n\n\n\n\n              G");
     msleep(500);
-    printf("	A");
+    printf("    A");
     msleep(500);
-    printf("	M");
+    printf("    M");
     msleep(500);
-    printf("	E");
+    printf("    E");
     msleep(500);
-    printf("	O");
+    printf("    O");
     msleep(500);
-    printf("	V");
+    printf("    V");
     msleep(500);
-    printf("	E");
+    printf("    E");
     msleep(500);
-    printf("	R");
+    printf("    R");
     msleep(1500);
     credit();
 }
@@ -217,7 +217,7 @@ void Savedata(char* name)
     }
 
     fprintf(fp, "%s %ld %d-%d-%d %d시 %d분\n", tmp.name, tmp.point, tmp.year, tmp.month, tmp.day, tmp.hour, tmp.min);
-    printf("\n\n\n					      당신의 기록이 저장되었습니다!");
+    printf("\n\n\n                        당신의 기록이 저장되었습니다!");
     fclose(fp);
     msleep(1000);
 }
@@ -424,6 +424,7 @@ void update_game(char input) {
 void move_player(char input) { // 키 입력(input)을 받아 플레이어 위치 바꾸는 함수
     int next_x = player_x;   // 이동 후 x좌표
     int next_y = player_y;   // 이동 후 y좌표
+    int moved = 0;
 
     // 현재 플레이어가 서 있는 칸(타일)
     char current_tile = map[stage][player_y][player_x]; //플레이어가 지금 서 있는 칸의 문자
@@ -460,7 +461,22 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
         if (on_ladder && // 사다리에 있고
             player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
             map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
-            next_y++; // 이동
+                next_y = player_y + 1;
+                moved = 1;
+        }
+        // 아래 2칸에 사다리가 있는 경우
+        else if (player_y + 2 < MAP_HEIGHT &&
+            map[stage][player_y + 2][player_x] == 'H'){
+                next_y = player_y + 2;
+                moved = 1;
+            }
+        // 실제로 이동할 수 있으면 적용
+        if (moved){
+            player_y = next_y;
+            is_jumping = 0;   
+            velocity_y = 0;
+            on_ladder = 1;    
+            return;          
         }
         break;
 
