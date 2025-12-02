@@ -424,6 +424,7 @@ void update_game(char input) {
 void move_player(char input) { // 키 입력(input)을 받아 플레이어 위치 바꾸는 함수
     int next_x = player_x;   // 이동 후 x좌표
     int next_y = player_y;   // 이동 후 y좌표
+    int moved = 0;
 
     // 현재 플레이어가 서 있는 칸(타일)
     char current_tile = map[stage][player_y][player_x]; //플레이어가 지금 서 있는 칸의 문자
