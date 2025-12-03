@@ -9,6 +9,7 @@
 #pragma comment(lib,"winmm.lib")
 #else
 #include <unistd.h>
+#include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <time.h>
@@ -87,13 +88,14 @@ void title();
 void gameover();
 void victory();
 void credit();
-void printstage(int stage);
+void printstage();
 void Savedata(char* name);
 void credit();
 void sound_j();
 void sound_c();
 void sound_go();
 void sound_cl();
+void sound_d();
 
 //메인 메뉴
 void title()
@@ -149,14 +151,41 @@ void gameover()
     credit();
 }
 
-void printstage(int stage)
+void printstage()
 {
 #ifdef _WIN32
     system("cls");
-#endif
+    printf("\n\n\n\n\n\n\n                              Game Starts in 5");
+    msleep(1000);
+    system("cls");
+    printf("\n\n\n\n\n\n\n                              Game Starts in 4");
+    msleep(1000);
+    system("cls");
+    printf("\n\n\n\n\n\n\n                              Game Starts in 3");
+    msleep(1000);
+    system("cls");
+    printf("\n\n\n\n\n\n\n                              Game Starts in 2");
+    msleep(1000);
+    system("cls");
+    printf("\n\n\n\n\n\n\n                              Game Starts in 1");
+    msleep(1000);
+#else
     clrscr();
-    printf("\n\n\n\n\n\n\n                              Stage %d", stage + 1);
-    msleep(5000);
+    printf("\n\n\n\n\n\n\n                              Game Starts in 5");
+    msleep(1000);
+    clrscr();
+    printf("\n\n\n\n\n\n\n                              Game Starts in 4");
+    msleep(1000);
+    clrscr();
+    printf("\n\n\n\n\n\n\n                              Game Starts in 3");
+    msleep(1000);
+    clrscr();
+    printf("\n\n\n\n\n\n\n                              Game Starts in 2");
+    msleep(1000);
+    clrscr();
+    printf("\n\n\n\n\n\n\n                              Game Starts in 1");
+    msleep(1000);
+#endif
 }
 
 void credit()
@@ -191,7 +220,7 @@ void credit()
     }
 
     fclose(fp);
-
+    msleep(10000);
 }
 
 void Savedata(char* name)
@@ -595,6 +624,7 @@ void check_collisions() {
         if (player_x == enemies[i].x && player_y == enemies[i].y) {
             score = (score > 50) ? score - 50 : 0;
             lives--;
+            sound_d();
             if (lives > 0) {
                 init_stage();
             }
@@ -688,6 +718,11 @@ void sound_cl()
 {
     PlaySound(TEXT("clear.wav"), NULL, SND_FILENAME | SND_ASYNC);
 }
+
+void sound_d()
+{
+    PlaySound(TEXT("dead.wav"), NULL, SND_FILENAME | SND_ASYNC);
+}
 #else
 
 void msleep(int t)
@@ -749,5 +784,10 @@ void sound_go()
 void sound_cl()
 {
     system("aplay clear.wav > /dev/null 2>&1 &");
+}
+
+void sound_d()
+{
+    system("aplay dead.wav > /dev/null 2>&1 &");
 }
 #endif
