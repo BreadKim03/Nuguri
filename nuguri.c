@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -630,7 +629,6 @@ void enable_raw_mode() {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 #endif
-=======
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1453,4 +1451,3 @@ void sound_cl()
     system("aplay clear.wav > /dev/null 2>&1 &");
 }
 #endif
->>>>>>> Stashed changes
