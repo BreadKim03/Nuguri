@@ -16,8 +16,8 @@
 #endif
 
 // 맵 및 게임 요소 정의 (수정된 부분)
-// #define MAP_WIDTH 40  // 맵 너비를 40으로 변경_ 해당 부분 삭제
-// #define MAP_HEIGHT 20
+#define MAP_WIDTH 40  // 맵 너비를 40으로 변경
+#define MAP_HEIGHT 20
 #define MAX_STAGES 2
 #define MAX_ENEMIES 15 // 최대 적 개수 증가
 #define MAX_COINS 30   // 최대 코인 개수 증가
@@ -47,10 +47,7 @@ static struct result
 }temp_result;
 
 // 전역 변수
-int map_width = 0;   // map파일을 읽어서 맵 가로 크기 설정
-int map_height = 0;  // 맵 세로 크기
-// 나중에 map[stage][y][x] 형태로 그대로 사용할 거라 3중 포인터처럼 씀
-char **map[MAX_STAGES]; // 각 스테이지별 맵을 가리키는 포인터
+char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];
 int player_x, player_y;
 int stage = 0;
 int score = 0;
@@ -375,6 +372,7 @@ int main() {
     return 0;
 }
 
+
 // 현재 스테이지 초기화
 void init_stage() {
     enemy_count = 0;
@@ -382,8 +380,8 @@ void init_stage() {
     is_jumping = 0;
     velocity_y = 0;
 
-    for (int y = 0; y < map_height; y++) {
-        for (int x = 0; x < map_width; x++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
             char cell = map[stage][y][x];
             if (cell == 'S') {
                 player_x = x;
@@ -408,41 +406,42 @@ void init_stage() {
 // 게임 화면 그리기
 void draw_game() {
     clrscr();
+#ifdef _WIN32
+    system("cls");
+#endif
     printf("Stage: %d | Score: %d\n | Lives: %d\n", stage + 1, score, lives);
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
-    for (int y = 0; y < map_height; y++) {
-        for (int x = 0; x < map_width; x++) {
-            char ch = map[stage][y][x];
-
-            // S, X, C는 기본 맵에서 지우고 위에서 덮어쓰도록 함
-            if (ch == 'S' || ch == 'X' || ch == 'C') {
-                ch = ' ';
+    char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            char cell = map[stage][y][x];
+            if (cell == 'S' || cell == 'X' || cell == 'C') {
+                display_map[y][x] = ' ';
             }
-
-            // 코인 덮어쓰기
-            for (int i = 0; i < coin_count; i++) {
-                if (!coins[i].collected &&
-                    coins[i].x == x && coins[i].y == y) {
-                    ch = 'C';
-                }
+            else {
+                display_map[y][x] = cell;
             }
-
-            // 적 덮어쓰기
-            for (int i = 0; i < enemy_count; i++) {
-                if (enemies[i].x == x && enemies[i].y == y) {
-                    ch = 'X';
-                }
-            }
-
-            // 플레이어 덮어쓰기
-            if (player_x == x && player_y == y) {
-                ch = 'P';
-            }
-
-            putchar(ch);
         }
-        putchar('\n');
+    }
+
+    for (int i = 0; i < coin_count; i++) {
+        if (!coins[i].collected) {
+            display_map[coins[i].y][coins[i].x] = 'C';
+        }
+    }
+
+    for (int i = 0; i < enemy_count; i++) {
+        display_map[enemies[i].y][enemies[i].x] = 'X';
+    }
+
+    display_map[player_y][player_x] = 'P';
+
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            printf("%c", display_map[y][x]);
+        }
+        printf("\n");
     }
 }
 
@@ -457,22 +456,24 @@ void update_game(char input) {
 void move_player(char input) { // 키 입력(input)을 받아 플레이어 위치 바꾸는 함수
     int next_x = player_x;   // 이동 후 x좌표
     int next_y = player_y;   // 이동 후 y좌표
+    int moved = 0;
 
     // 현재 플레이어가 서 있는 칸(타일)
-    char current_tile = map[stage][player_y][player_x]; // 플레이어가 지금 서 있는 칸의 문자
+    char current_tile = map[stage][player_y][player_x]; //플레이어가 지금 서 있는 칸의 문자
     on_ladder = (current_tile == 'H');  // 현재 칸이 사다리면 1, 아니면 0
 
     // 발 아래 칸이 무엇인지 확인
     char floor_tile;
-    if (player_y + 1 < map_height) {
+    if (player_y + 1 < MAP_HEIGHT) {
         floor_tile = map[stage][player_y + 1][player_x];  // 바로 아래칸 읽기
-    } else {
+    }
+    else {
         floor_tile = '#';  // 맵 아래는 바닥(#)로 처리
     }
 
     // 이동 기능 입력
     switch (input) {
-    case 'a': // 왼쪽
+    case 'a': // 왼쪽 
         next_x--;
         break;
 
@@ -481,49 +482,44 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
         break;
 
     case 'w': // 사다리에서 위로
-        if (on_ladder && player_y - 1 >= 0 &&
-            map[stage][player_y - 1][player_x] != '#') {
-            next_y--;
-        } else if (on_ladder && player_y - 2 >= 0 &&
-                   map[stage][player_y - 1][player_x] == '#') {
-            // 한 칸 위가 벽이고 두 칸 위가 맵 안이면 두 칸 올라가기
+        if (on_ladder && map[stage][player_y - 1][player_x] != '#') next_y--;
+        else if (on_ladder && map[stage][player_y-1][player_x] == '#')
+        {
             next_y -= 2;
         }
         break;
 
-    case 's': { // 사다리에서 아래로
-        int moved = 0;
-
-        if (on_ladder &&
-            player_y + 1 < map_height &&
-            map[stage][player_y + 1][player_x] != '#') {
-            // 바로 아래가 맵 안이고 벽이 아니면 한 칸 내려가기
-            next_y = player_y + 1;
-            moved = 1;
-        } else if (player_y + 2 < map_height &&
-                   map[stage][player_y + 2][player_x] == 'H') {
-            // 두 칸 아래가 사다리면 두 칸 내려가기
-            next_y = player_y + 2;
-            moved = 1;
+    case 's': // 사다리에서 아래로
+        if (on_ladder && // 사다리에 있고
+            player_y + 1 < MAP_HEIGHT && // 아래로 한 칸 내려가도 맵 범위를 넘지 않게
+            map[stage][player_y + 1][player_x] != '#') { // 아래 칸이 벽이 아니면
+                next_y = player_y + 1;
+                moved = 1;
         }
-
-        if (moved) {
+        // 아래 2칸에 사다리가 있는 경우
+        else if (player_y + 2 < MAP_HEIGHT &&
+            map[stage][player_y + 2][player_x] == 'H'){
+                next_y = player_y + 2;
+                moved = 1;
+            }
+        // 실제로 이동할 수 있으면 적용
+        if (moved){
             player_y = next_y;
-            is_jumping = 0;
+            is_jumping = 0;   
             velocity_y = 0;
-            on_ladder = 1;
-            return; // 아래로 이동 끝났으면 여기서 종료
+            on_ladder = 1;    
+            return;          
         }
         break;
-    }
 
     case ' ': { // 점프 키 처리
         char below;
 
         // 발 아래칸이 맵 범위 안이면 그 칸을 읽고
-        if (player_y + 1 < map_height) {
+        if (player_y + 1 < MAP_HEIGHT) {
             below = map[stage][player_y + 1][player_x];
-        } else {
+        }
+        else {
             below = '#'; // 맵 아래는 바닥 취급
         }
 
@@ -542,7 +538,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
 
     // 좌우로 이동할 때 맵 안에서만 이동 가능
     if (next_x != player_x) {
-        if (next_x >= 0 && next_x < map_width &&
+        if (next_x >= 0 && next_x < MAP_WIDTH && // x좌표 맵 범위 안에 있고
             map[stage][player_y][next_x] != '#') {  // 그 칸이 벽이 아니라면
             player_x = next_x; // 좌우 이동
         }
@@ -552,20 +548,21 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     current_tile = map[stage][player_y][player_x]; // 좌우 이동 후, 현재 플레이어가 있는 칸 읽기
     on_ladder = (current_tile == 'H'); // 이동 후에 사다리 위인지
 
-    if (player_y + 1 < map_height) {
+    if (player_y + 1 < MAP_HEIGHT) {
         floor_tile = map[stage][player_y + 1][player_x];
-    } else {
+    }
+    else {
         floor_tile = '#';
     }
 
     // 사다리에서 위아래로 이동
     if (on_ladder && (input == 'w' || input == 's')) {
-        // 현재 사다리 위에 있으면서 w 또는 s 입력이 들어온 경우에만
-        if (next_y >= 0 && next_y < map_height &&
-            map[stage][next_y][player_x] != '#') {
-            player_y = next_y;
-            is_jumping = 0;
-            velocity_y = 0;
+        // 현재 사다리 위에 있으면서 w 또는 s 입력이 들어온 경우에만 사다리에서만 위아래 이동 허용
+        if (next_y >= 0 && next_y < MAP_HEIGHT && // y좌표 후보가 맵 범위 안이고
+            map[stage][next_y][player_x] != '#') { // 이동하려는 칸이 벽이 아니면
+            player_y = next_y; // 이동
+            is_jumping = 0; // 점프 상태 해제
+            velocity_y = 0; // 점프 속도 0으로 초기화
         }
     }
     // 사다리가 아닐 때 점프/중력 처리
@@ -578,12 +575,14 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
             if (jump_y >= 0 && map[stage][jump_y][player_x] != '#') {
                 player_y = jump_y;
                 velocity_y--;          // 위로 올라갈 힘 줄임
-            } else {
+            }
+            else {
                 // 천장에 부딪히면 점프 종료
                 is_jumping = 0;
                 velocity_y = 0;
             }
-        } else {
+        }
+        else {
             // 더 이상 위로 올라갈 힘이 없으면 점프 끝
             is_jumping = 0;
             velocity_y = 0;
@@ -593,9 +592,10 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     else {
         // 발 아래가 공중이면 아래로 떨어짐
         if (floor_tile != '#' && floor_tile != 'H') {
-            if (player_y + 1 < map_height) {
+            if (player_y + 1 < MAP_HEIGHT) {
                 player_y++; // 한 칸 아래로 떨어짐
-            } else {
+            }
+            else {
                 init_stage(); // 맵 아래로 떨어지면 스테이지 리셋
                 return;
             }
@@ -603,7 +603,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
     }
 
     // 맵 아래로 완전히 넘어가면 스테이지 리셋
-    if (player_y >= map_height) {
+    if (player_y >= MAP_HEIGHT) {
         init_stage();
     }
 }
@@ -612,10 +612,7 @@ void move_player(char input) { // 키 입력(input)을 받아 플레이어 위�
 void move_enemies() {
     for (int i = 0; i < enemy_count; i++) {
         int next_x = enemies[i].x + enemies[i].dir;
-        if (next_x < 0 || next_x >= map_width ||
-            map[stage][enemies[i].y][next_x] == '#' ||
-            (enemies[i].y + 1 < map_height &&
-             map[stage][enemies[i].y + 1][next_x] == ' ')) {
+        if (next_x < 0 || next_x >= MAP_WIDTH || map[stage][enemies[i].y][next_x] == '#' || (enemies[i].y + 1 < MAP_HEIGHT && map[stage][enemies[i].y + 1][next_x] == ' ')) {
             enemies[i].dir *= -1;
         }
         else {
@@ -648,88 +645,25 @@ void check_collisions() {
 
 // 맵 파일 로드
 void load_maps() {
-    FILE *file = fopen("map.txt", "r");
-    char line[256];
-    int s, y, x;
-    int len;
-
+    FILE* file = fopen("map.txt", "r");
     if (!file) {
         perror("map.txt 파일을 열 수 없습니다.");
         exit(1);
     }
-
-    // 첫 번째 스테이지의 가로, 세로 크기를 계산
-    map_width = 0;
-    map_height = 0;
-
-    while (fgets(line, sizeof(line), file)) {
-        len = strcspn(line, "\r\n"); // 개행 문자 제거 전 길이
-        if (len == 0) { // 빈 줄이면 첫 스테이지 끝
-            break;
-        }
-        if (len > map_width) {
-            map_width = len;
-        }
-        map_height++;
-    }
-
-    if (map_height == 0 || map_width == 0) {
-        printf("맵이 비어 있거나 잘못되었습니다.\n");
-        fclose(file);
-        exit(1);
-    }
-
-    // 각 스테이지별로 맵 메모리 동적 할당
-    for (s = 0; s < MAX_STAGES; s++) {
-        map[s] = (char **)malloc(sizeof(char *) * map_height);
-        if (map[s] == NULL) {
-            printf("맵 메모리 할당 실패\n");
-            exit(1);
-        }
-
-        for (y = 0; y < map_height; y++) {
-            map[s][y] = (char *)malloc(map_width + 1); // 문자열 끝 '\0' 포함
-            if (map[s][y] == NULL) {
-                printf("맵 메모리 할당 실패\n");
-                exit(1);
-            }
-
-            // 일단 공백으로 채우기
-            for (x = 0; x < map_width; x++) {
-                map[s][y][x] = ' ';
-            }
-            map[s][y][map_width] = '\0';
-        }
-    }
-
-    // 파일 처음으로 되돌린 후 실제 맵 내용 채우기
-    fseek(file, 0, SEEK_SET);
-
-    s = 0;
-    y = 0;
+    int s = 0, r = 0;
+    char line[MAP_WIDTH + 2]; // 버퍼 크기는 MAP_WIDTH에 따라 자동 조절됨
     while (s < MAX_STAGES && fgets(line, sizeof(line), file)) {
-        len = strcspn(line, "\r\n");
-        line[len] = '\0'; 
-
-        // 빈 줄이면 다음 스테이지로 넘어가는 기준
-        if (len == 0) {
-            if (y > 0) { // 줄을 하나 이상 읽었을 때만 다음 스테이지로
-                s++;
-                y = 0;
-            }
+        if ((line[0] == '\n' || line[0] == '\r') && r > 0) {
+            s++;
+            r = 0;
             continue;
         }
-
-        if (y < map_height) {
-            // 한 줄 내용을 맵에 복사
-            for (x = 0; x < len && x < map_width; x++) {
-                map[s][y][x] = line[x];
-            }
-            // 나머지는 위에서 공백으로 초기화 되어 있음
-            y++;
+        if (r < MAP_HEIGHT) {
+            line[strcspn(line, "\n\r")] = 0;
+            strncpy(map[s][r], line, MAP_WIDTH + 1);
+            r++;
         }
     }
-
     fclose(file);
 }
 
