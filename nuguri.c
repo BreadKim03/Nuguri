@@ -100,6 +100,10 @@ void sound_d();
 //메인 메뉴
 void title()
 {
+#ifdef _WIN32
+    system("cls");
+#endif
+    clrscr();
     printf("\n\n\n\n\n\n\n                              T");
     msleep(500);
     printf("    H");
@@ -406,10 +410,7 @@ void init_stage() {
 // 게임 화면 그리기
 void draw_game() {
     clrscr();
-#ifdef _WIN32
-    system("cls");
-#endif
-    printf("Stage: %d | Score: %d\n | Lives: %d\n", stage + 1, score, lives);
+    printf("Stage: %d | Score: %d  \nLives: %d\n", stage + 1, score, lives);
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
